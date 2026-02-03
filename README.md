@@ -1,1 +1,1 @@
-# heroforce
+# HeroForce - Sistema de Gestão de Projetos Heroicos
