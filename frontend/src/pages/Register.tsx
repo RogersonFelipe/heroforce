@@ -1,46 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Shield, AlertCircle } from 'lucide-react';
-import { authAPI } from '../services/api';
-import { useAuthStore } from '../store/authStore';
+import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Shield, AlertCircle } from "lucide-react";
+import { authAPI } from "../services/api";
+import { useAuthStore } from "../store/authStore";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    character: '',
-    password: '',
+    name: "",
+    email: "",
+    character: "",
+    password: "",
+    role: "hero" as const,
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const characters = [
-    'Homem de Ferro',
-    'Capitã Marvel',
-    'Homem-Aranha',
-    'Mulher Maravilha',
-    'Batman',
-    'Superman',
-    'Viúva Negra',
-    'Pantera Negra',
-    'Thor',
-    'Hulk',
+    "Homem de Ferro",
+    "Capitã Marvel",
+    "Homem-Aranha",
+    "Mulher Maravilha",
+    "Batman",
+    "Superman",
+    "Viúva Negra",
+    "Pantera Negra",
+    "Thor",
+    "Hulk",
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
       const response = await authAPI.register(formData);
       setAuth(response.data.user, response.data.access_token);
-      navigate('/dashboard');
+      navigate("/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao registrar');
+      setError(err.response?.data?.message || "Erro ao registrar");
     } finally {
       setLoading(false);
     }
@@ -137,12 +138,33 @@ const Register: React.FC = () => {
             <p className="text-xs text-gray-400 mt-1">Mínimo 6 caracteres</p>
           </div>
 
+          <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg border border-white/20">
+            <input
+              type="checkbox"
+              id="admin-role"
+              checked={formData.role === "admin"}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  role: e.target.checked ? "admin" : "hero",
+                })
+              }
+              className="w-5 h-5 accent-yellow-400 cursor-pointer"
+            />
+            <label
+              htmlFor="admin-role"
+              className="text-gray-200 cursor-pointer select-none"
+            >
+              Registrar como Administrador
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
             className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-bold py-3 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Ativando Poderes...' : 'Ativar Poderes'}
+            {loading ? "Ativando Poderes..." : "Ativar Poderes"}
           </button>
 
           <Link

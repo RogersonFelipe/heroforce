@@ -1,12 +1,12 @@
 export const ProjectStatus = {
-  PENDING: 'pendente',
-  IN_PROGRESS: 'em andamento',
-  COMPLETED: 'concluído',
+  PENDING: "pendente",
+  IN_PROGRESS: "em andamento",
+  COMPLETED: "concluído",
 } as const;
 
-export type ProjectStatus = typeof ProjectStatus[keyof typeof ProjectStatus];
+export type ProjectStatus = (typeof ProjectStatus)[keyof typeof ProjectStatus];
 
-export type UserRole = 'admin' | 'hero';
+export type UserRole = "admin" | "hero";
 
 export interface User {
   id: string;
@@ -54,7 +54,7 @@ export interface CreateProjectDto {
   responsibleId: string;
 }
 
-export type UpdateProjectDto = Partial<CreateProjectDto>
+export type UpdateProjectDto = Partial<CreateProjectDto>;
 
 export interface LoginDto {
   email: string;
@@ -66,4 +66,5 @@ export interface RegisterDto {
   email: string;
   character: string;
   password: string;
+  role: UserRole;
 }

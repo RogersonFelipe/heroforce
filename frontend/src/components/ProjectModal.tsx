@@ -1,7 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
-import { projectsAPI } from '../services/api';
-import { type Project, ProjectStatus, type User, type CreateProjectDto } from '../types';
+import React, { useState, useEffect } from "react";
+import { X } from "lucide-react";
+import { projectsAPI } from "../services/api";
+import {
+  type Project,
+  ProjectStatus,
+  type User,
+  type CreateProjectDto,
+} from "../types";
 
 interface ProjectModalProps {
   project: Project | null;
@@ -15,8 +20,8 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   onClose,
 }) => {
   const [formData, setFormData] = useState<CreateProjectDto>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     status: ProjectStatus.PENDING,
     agilidade: 0,
     encantamento: 0,
@@ -25,10 +30,10 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
     transparencia: 0,
     ambicao: 0,
     completion: 0,
-    responsibleId: '',
+    responsibleId: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (project) {
@@ -50,7 +55,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
     try {
@@ -61,7 +66,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       }
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Erro ao salvar projeto');
+      setError(err.response?.data?.message || "Erro ao salvar projeto");
     } finally {
       setLoading(false);
     }
@@ -77,7 +82,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
       <div className="bg-gray-900 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-white/20">
         <div className="sticky top-0 bg-gray-900 border-b border-white/10 p-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">
-            {project ? 'Editar Projeto' : 'Novo Projeto'}
+            {project ? "Editar Projeto" : "Novo Projeto"}
           </h2>
           <button
             onClick={onClose}
@@ -140,11 +145,18 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 required
               >
-                <option value={ProjectStatus.PENDING}>Pendente</option>
-                <option value={ProjectStatus.IN_PROGRESS}>
+                <option className="text-black" value={ProjectStatus.PENDING}>
+                  Pendente
+                </option>
+                <option
+                  className="text-black"
+                  value={ProjectStatus.IN_PROGRESS}
+                >
                   Em Andamento
                 </option>
-                <option value={ProjectStatus.COMPLETED}>Concluído</option>
+                <option className="text-black" value={ProjectStatus.COMPLETED}>
+                  Concluído
+                </option>
               </select>
             </div>
 
@@ -160,9 +172,11 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                 className="w-full px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-yellow-400"
                 required
               >
-                <option value="">Selecione um herói</option>
+                <option value="" className="text-black">
+                  Selecione um herói
+                </option>
                 {users.map((user) => (
-                  <option key={user.id} value={user.id}>
+                  <option className="text-black" key={user.id} value={user.id}>
                     {user.name} ({user.character})
                   </option>
                 ))}
@@ -180,7 +194,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               max="100"
               value={formData.completion}
               onChange={(e) =>
-                handleGoalChange('completion', parseInt(e.target.value))
+                handleGoalChange("completion", parseInt(e.target.value))
               }
               className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
             />
@@ -193,12 +207,12 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { key: 'agilidade', label: 'Agilidade' },
-                { key: 'encantamento', label: 'Encantamento' },
-                { key: 'eficiencia', label: 'Eficiência' },
-                { key: 'excelencia', label: 'Excelência' },
-                { key: 'transparencia', label: 'Transparência' },
-                { key: 'ambicao', label: 'Ambição' },
+                { key: "agilidade", label: "Agilidade" },
+                { key: "encantamento", label: "Encantamento" },
+                { key: "eficiencia", label: "Eficiência" },
+                { key: "excelencia", label: "Excelência" },
+                { key: "transparencia", label: "Transparência" },
+                { key: "ambicao", label: "Ambição" },
               ].map(({ key, label }) => (
                 <div key={key}>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -225,7 +239,7 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
               disabled={loading}
               className="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-bold py-3 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Salvando...' : project ? 'Atualizar' : 'Criar'}
+              {loading ? "Salvando..." : project ? "Atualizar" : "Criar"}
             </button>
             <button
               type="button"

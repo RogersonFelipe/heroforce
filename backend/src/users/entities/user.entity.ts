@@ -9,10 +9,12 @@ import {
 import { Exclude } from 'class-transformer';
 import { Project } from 'src/projects/entities/project.entity';
 
-export enum UserRole {
-  ADMIN = 'admin',
-  HERO = 'hero',
-}
+export const UserRole = {
+  HERO: 'hero',
+  ADMIN: 'admin',
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 @Entity('users')
 export class User {
@@ -33,9 +35,8 @@ export class User {
   character: string;
 
   @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.HERO,
+    type: 'varchar',
+    default: 'hero',
   })
   role: UserRole;
 

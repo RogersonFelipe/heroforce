@@ -1,5 +1,18 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  MinLength,
+  IsEnum,
+} from 'class-validator';
+
+export const UserRole = {
+  HERO: 'hero',
+  ADMIN: 'admin',
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
 export class CreateUserDto {
   @ApiProperty({
@@ -32,8 +45,16 @@ export class CreateUserDto {
     minLength: 6,
   })
   @IsString()
-  @MinLength(6, { message: 'Senha deve ter no minimo caracteres' })
+  @MinLength(6, { message: 'Senha deve ter no minimo 6 caracteres' })
   password: string;
+
+  @ApiProperty({
+    example: 'hero',
+    description: 'Role do usuário (hero ou admin)',
+    enum: ['hero', 'admin'],
+  })
+  @IsEnum(['hero', 'admin'], { message: 'Role deve ser hero ou admin' })
+  role: UserRole;
 }
 
 export class LoginDto {

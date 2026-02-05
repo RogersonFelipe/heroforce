@@ -8,6 +8,7 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { User } from './entities/user.entity';
 
 @ApiTags('users')
 @Controller('users')
@@ -23,10 +24,11 @@ export class UsersController {
   async findAll() {
     return this.usersService.findAll();
   }
+
   @Get('me')
-  @ApiOperation({ summary: 'Obter dados do usuário logado'})
-  @ApiResponse({ status: 200, description: 'Dados do usuário'})
-  async getProfile(@GetUser() user){
+  @ApiOperation({ summary: 'Obter dados do usuário logado' })
+  @ApiResponse({ status: 200, description: 'Dados do usuário' })
+  async getProfile(@GetUser() user: User) {
     return this.usersService.findOne(user.id);
   }
 

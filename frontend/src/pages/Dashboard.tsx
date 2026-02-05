@@ -22,9 +22,6 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
 
-  const [showModal, setShowModal] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-
   const [projects, setProjects] = useState<Project[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState({
@@ -35,6 +32,8 @@ const Dashboard: React.FC = () => {
   });
   const [filter, setFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   useEffect(() => {
     loadData();
@@ -66,6 +65,16 @@ const Dashboard: React.FC = () => {
     navigate("/login");
   };
 
+  const handleCreateProject = () => {
+    setEditingProject(null);
+    setShowModal(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setEditingProject(project);
+    setShowModal(true);
+  };
+
   const handleDeleteProject = async (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir este projeto?")) {
       try {
@@ -78,20 +87,10 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleCreateProject = () => {
-    setEditingProject(null);
-    setShowModal(true);
-  };
-
-  const handleEditProject = (project: Project) => {
-    setEditingProject(project);
-    setShowModal(true);
-  };
-
   const handleModalClose = () => {
     setShowModal(false);
     setEditingProject(null);
-    loadData(); // Recarrega os dados
+    loadData();
   };
 
   const getCharacterEmoji = (character: string) => {
@@ -159,7 +158,6 @@ const Dashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
-      {/* Header */}
       <div className="bg-black/30 backdrop-blur-sm border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -190,8 +188,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -200,6 +196,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-gray-400 text-sm">Total de Projetos</p>
                 <p className="text-3xl font-bold text-white">{stats.total}</p>
               </div>
+              <Target className="w-12 h-12 text-blue-400" />
             </div>
           </div>
 
@@ -209,6 +206,7 @@ const Dashboard: React.FC = () => {
                 <p className="text-gray-400 text-sm">Pendentes</p>
                 <p className="text-3xl font-bold text-white">{stats.pending}</p>
               </div>
+              <div className="text-4xl">⏳</div>
             </div>
           </div>
 
@@ -220,6 +218,7 @@ const Dashboard: React.FC = () => {
                   {stats.inProgress}
                 </p>
               </div>
+              <TrendingUp className="w-12 h-12 text-yellow-400" />
             </div>
           </div>
 
@@ -231,6 +230,7 @@ const Dashboard: React.FC = () => {
                   {stats.completed}
                 </p>
               </div>
+              <div className="text-4xl">✅</div>
             </div>
           </div>
         </div>
@@ -376,7 +376,6 @@ const Dashboard: React.FC = () => {
           onClose={handleModalClose}
         />
       )}
-
     </div>
   );
 };
