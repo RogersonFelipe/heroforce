@@ -13,3 +13,4 @@ export const typeOrmConfig: TypeOrmModuleOptions = {
       ? { rejectUnauthorized: false }
       : false,
 };
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
