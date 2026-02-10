@@ -2,6 +2,22 @@
 
 Sistema completo de gerenciamento de projetos com autenticação, dashboard interativo e gestão de valores heroicos.
 
+## 📋 Índice
+
+- [Sobre o Projeto](#sobre-o-projeto)
+- [Tecnologias](#tecnologias)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação e Execução](#instalação-e-execução)
+  - [Opção 1: Com Docker (Recomendado)](#opção-1-com-docker-recomendado)
+  - [Opção 2: Sem Docker](#opção-2-sem-docker)
+- [Estrutura do Projeto](#estrutura-do-projeto)
+- [API Endpoints](#api-endpoints)
+- [Variáveis de Ambiente](#variáveis-de-ambiente)
+- [Troubleshooting](#troubleshooting)
+- [Licença](#licença)
+
+---
+
 ## 🎯 Sobre o Projeto
 
 **HeroForce** é uma aplicação full-stack para gerenciamento de projetos com temática de super-heróis. O sistema permite:

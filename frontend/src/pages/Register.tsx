@@ -1,19 +1,26 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Shield, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { authAPI } from "../services/api";
 import { useAuthStore } from "../store/authStore";
+import type { UserRole } from "../types";
 
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    character: string;
+    password: string;
+    role: UserRole;
+  }>({
     name: "",
     email: "",
     character: "",
     password: "",
-    role: "hero" as const,
+    role: "hero",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
