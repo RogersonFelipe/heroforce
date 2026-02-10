@@ -9,8 +9,14 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3001'];
+
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://localhost:3001'],
+    origin: allowedOrigins,
     credentials: true,
   });
 
@@ -33,9 +39,14 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 3000;
+
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🦸 HeroForce API rodando em: http://localhost:${port}`);
-  console.log(`📚 Documentação Swagger: http://localhost:${port}/api/docs`);
+  console.log(`🦸 HeroForce API rodando na porta ${port}`);
+  console.log(`📚 Documentação: /api/docs`);
+
+  if (process.env.FRONTEND_URL) {
+    console.log(`✅ CORS habilitado para: ${process.env.FRONTEND_URL}`);
+  }
 }
 bootstrap();
