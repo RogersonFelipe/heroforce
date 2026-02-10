@@ -9,14 +9,28 @@ dotenv.config();
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const allowedOrigins = ['http://localhost:5173', 'http://localhost:3001'];
-
-  if (process.env.FRONTEND_URL) {
-    allowedOrigins.push(process.env.FRONTEND_URL);
-  }
-
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      const allowedOrigins = [
+        'http://localhost:5173',
+        'http://localhost:3001',
+        process.env.FRONTEND_URL,
+      ];
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   });
 
@@ -41,12 +55,6 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
 
   await app.listen(port, '0.0.0.0');
-
-  console.log(`🦸 HeroForce API rodando na porta ${port}`);
-  console.log(`📚 Documentação: /api/docs`);
-
-  if (process.env.FRONTEND_URL) {
-    console.log(`✅ CORS habilitado para: ${process.env.FRONTEND_URL}`);
-  }
 }
+
 bootstrap();
