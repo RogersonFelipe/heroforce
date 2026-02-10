@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Shield,
+  Users,
   Target,
   TrendingUp,
   LogOut,
