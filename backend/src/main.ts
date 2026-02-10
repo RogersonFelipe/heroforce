@@ -10,27 +10,11 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: (
-      origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      const allowedOrigins = [
-        'http://localhost:5173',
-        'http://localhost:3001',
-        process.env.FRONTEND_URL,
-      ];
-
-      if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3001',
+      'https://heroforcefrontend-production-56d3.up.railway.app',
+    ],
     credentials: true,
   });
 
