@@ -3,6 +3,7 @@ import {
   IsEnum,
   IsNotEmpty,
   IsNumber,
+  IsOptional,
   IsString,
   IsUUID,
   Max,
@@ -127,6 +128,7 @@ export class UpdateProjectDto {
     required: false,
     description: 'Nome do projeto',
   })
+  @IsOptional()
   @IsString()
   name?: string;
 
@@ -135,6 +137,7 @@ export class UpdateProjectDto {
     required: false,
     description: 'Descrição do projeto',
   })
+  @IsOptional()
   @IsString()
   description?: string;
 
@@ -144,6 +147,7 @@ export class UpdateProjectDto {
     required: false,
     description: 'Status do projeto',
   })
+  @IsOptional()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
 
@@ -153,6 +157,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -164,6 +169,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -175,6 +181,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -186,6 +193,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -197,6 +205,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -208,6 +217,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -219,6 +229,7 @@ export class UpdateProjectDto {
     maximum: 100,
     required: false,
   })
+  @IsOptional()
   @IsNumber()
   @Min(0)
   @Max(100)
@@ -228,6 +239,7 @@ export class UpdateProjectDto {
     example: '123e4567-e89b-12d3-a456-426614174000',
     required: false,
   })
+  @IsOptional()
   @IsUUID('4')
   responsibleId?: string;
 }

@@ -4,8 +4,9 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ProjectsService } from './projects.service';
 import { Project, ProjectStatus } from './entities/project.entity';
-import { CreateProjectDto } from './dto/project.dto';
+import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { RedisService } from '../redis/redis.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 type MockRepository = Partial<Record<keyof Repository<Project>, jest.Mock>>;
 
@@ -26,10 +27,19 @@ const createMockRedisService = (): MockRedisService => ({
   delByPattern: jest.fn().mockResolvedValue(undefined),
 });
 
+type MockNotificationsService = Partial<
+  Record<keyof NotificationsService, jest.Mock>
+>;
+
+const createMockNotificationsService = (): MockNotificationsService => ({
+  notifyStatusChange: jest.fn().mockResolvedValue(undefined),
+});
+
 describe('ProjectsService', () => {
   let service: ProjectsService;
   let repository: MockRepository;
   let redisService: MockRedisService;
+  let notificationsService: MockNotificationsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,12 +53,17 @@ describe('ProjectsService', () => {
           provide: RedisService,
           useValue: createMockRedisService(),
         },
+        {
+          provide: NotificationsService,
+          useValue: createMockNotificationsService(),
+        },
       ],
     }).compile();
 
     service = module.get<ProjectsService>(ProjectsService);
     repository = module.get(getRepositoryToken(Project));
     redisService = module.get(RedisService);
+    notificationsService = module.get(NotificationsService);
   });
 
   it('should be defined', () => {
@@ -184,6 +199,93 @@ describe('ProjectsService', () => {
         }),
       );
       expect(redisService.delByPattern).toHaveBeenCalledWith('projects:*');
+    });
+
+    it('não apaga campos existentes quando o DTO chega com propriedades undefined', async () => {
+      // Com useDefineForClassFields (target ES2022+), o ValidationPipe
+      // instancia UpdateProjectDto com TODOS os campos declarados como
+      // propriedades próprias — os não enviados ficam undefined em vez de
+      // simplesmente ausentes. Um Object.assign ingênuo apagaria o resto.
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+        description: 'Descrição original',
+        status: ProjectStatus.PENDING,
+        agilidade: 80,
+        completion: 0,
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
+      repository.save!.mockImplementation((p) => Promise.resolve(p));
+
+      const dto = new UpdateProjectDto();
+      dto.status = ProjectStatus.IN_PROGRESS;
+
+      const result = await service.update('project-1', dto);
+
+      expect(result.name).toBe('Missão Resgate');
+      expect(result.description).toBe('Descrição original');
+      expect(result.agilidade).toBe(80);
+      expect(result.completion).toBe(0);
+    });
+
+    it('publica evento na fila quando o status muda', async () => {
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+        status: ProjectStatus.PENDING,
+        responsibleId: 'user-1',
+        responsible: { email: 'user@dc.com' },
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
+      repository.save!.mockImplementation((p) => Promise.resolve(p));
+
+      await service.update('project-1', { status: ProjectStatus.IN_PROGRESS });
+
+      expect(notificationsService.notifyStatusChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          projectId: 'project-1',
+          previousStatus: ProjectStatus.PENDING,
+          newStatus: ProjectStatus.IN_PROGRESS,
+          responsibleEmail: 'user@dc.com',
+        }),
+      );
+    });
+
+    it('não publica evento quando o status não muda', async () => {
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+        status: ProjectStatus.PENDING,
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
+      repository.save!.mockImplementation((p) => Promise.resolve(p));
+
+      await service.update('project-1', { name: 'Novo nome' });
+
+      expect(notificationsService.notifyStatusChange).not.toHaveBeenCalled();
+    });
+
+    it('não derruba a atualização quando a fila falha ao publicar', async () => {
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+        status: ProjectStatus.PENDING,
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
+      repository.save!.mockImplementation((p) => Promise.resolve(p));
+      notificationsService.notifyStatusChange!.mockRejectedValue(
+        new Error('fila indisponível'),
+      );
+
+      const result = await service.update('project-1', {
+        status: ProjectStatus.IN_PROGRESS,
+      });
+
+      expect(result.status).toBe(ProjectStatus.IN_PROGRESS);
     });
   });
 

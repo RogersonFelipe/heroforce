@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Project, ProjectStatus } from './entities/project.entity';
 import { Repository } from 'typeorm';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { RedisService } from '../redis/redis.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const CACHE_PREFIX = 'projects';
 const CACHE_TTL_SECONDS = 60;
@@ -17,10 +18,13 @@ export interface ProjectStatistics {
 
 @Injectable()
 export class ProjectsService {
+  private readonly logger = new Logger(ProjectsService.name);
+
   constructor(
     @InjectRepository(Project)
     private projectRepository: Repository<Project>,
     private redisService: RedisService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async create(createProjectDto: CreateProjectDto): Promise<Project> {
@@ -81,9 +85,21 @@ export class ProjectsService {
     updateProjectDto: UpdateProjectDto,
   ): Promise<Project> {
     const project = await this.findOne(id);
-    Object.assign(project, updateProjectDto);
+    const previousStatus = project.status;
+
+    // class-transformer instancia UpdateProjectDto com todos os campos
+    // declarados como propriedades próprias (mesmo os não enviados, como
+    // undefined) — sem filtrar, Object.assign apagaria os campos existentes.
+    const updates = this.stripUndefined(updateProjectDto);
+    Object.assign(project, updates);
+
     const saved = await this.projectRepository.save(project);
     await this.invalidateCache();
+
+    if (updates.status && updates.status !== previousStatus) {
+      await this.publishStatusChange(saved, previousStatus);
+    }
+
     return saved;
   }
 
@@ -135,5 +151,32 @@ export class ProjectsService {
 
   private async invalidateCache(): Promise<void> {
     await this.redisService.delByPattern(`${CACHE_PREFIX}:*`);
+  }
+
+  private stripUndefined<T extends object>(obj: T): Partial<T> {
+    return Object.fromEntries(
+      Object.entries(obj).filter(([, value]) => value !== undefined),
+    ) as Partial<T>;
+  }
+
+  private async publishStatusChange(
+    project: Project,
+    previousStatus: ProjectStatus,
+  ): Promise<void> {
+    try {
+      await this.notificationsService.notifyStatusChange({
+        projectId: project.id,
+        projectName: project.name,
+        previousStatus,
+        newStatus: project.status,
+        responsibleId: project.responsibleId,
+        responsibleEmail: project.responsible?.email ?? '',
+        changedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Falha ao enfileirar notificação de mudança de status: ${(err as Error).message}`,
+      );
+    }
   }
 }
