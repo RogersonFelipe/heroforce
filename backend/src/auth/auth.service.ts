@@ -13,6 +13,8 @@ import { randomUUID } from 'crypto';
 import { User } from '../users/entities/user.entity';
 import { CreateUserDto, LoginDto } from './dto/auth.dto';
 import { RedisService } from '../redis/redis.service';
+import { AuditService } from '../audit/audit.service';
+import { diffFields } from '../audit/audit-diff.util';
 
 const LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60;
 const LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 5;
@@ -24,6 +26,7 @@ export class AuthService {
     private userRepository: Repository<User>,
     private jwtService: JwtService,
     private redisService: RedisService,
+    private auditService: AuditService,
   ) {}
 
   async register(createUserDto: CreateUserDto) {
@@ -48,6 +51,22 @@ export class AuthService {
     });
 
     await this.userRepository.save(user);
+
+    await this.auditService.record({
+      entidade: 'user',
+      entidadeId: user.id,
+      acao: 'create',
+      usuarioId: user.id,
+      alteracoes: diffFields(
+        {},
+        {
+          name: user.name,
+          email: user.email,
+          character: user.character,
+          role: user.role,
+        },
+      ),
+    });
 
     const access_token = this.signToken(user);
 

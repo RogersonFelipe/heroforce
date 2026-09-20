@@ -60,7 +60,6 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
-  /** Remove todas as chaves que casam com o padrão (ex: "projects:*"). */
   async delByPattern(pattern: string): Promise<void> {
     if (!this.available) return;
     try {
@@ -87,7 +86,6 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
-  /** Incrementa um contador, definindo TTL apenas na primeira ocorrência. Retorna 0 se o Redis estiver indisponível (fail-open). */
   async incrementWithExpiry(key: string, ttlSeconds: number): Promise<number> {
     if (!this.available) return 0;
     try {

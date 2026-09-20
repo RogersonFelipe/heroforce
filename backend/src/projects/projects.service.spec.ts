@@ -7,6 +7,7 @@ import { Project, ProjectStatus } from './entities/project.entity';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { RedisService } from '../redis/redis.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
 
 type MockRepository = Partial<Record<keyof Repository<Project>, jest.Mock>>;
 
@@ -35,11 +36,20 @@ const createMockNotificationsService = (): MockNotificationsService => ({
   notifyStatusChange: jest.fn().mockResolvedValue(undefined),
 });
 
+type MockAuditService = Partial<Record<keyof AuditService, jest.Mock>>;
+
+const createMockAuditService = (): MockAuditService => ({
+  record: jest.fn().mockResolvedValue(undefined),
+});
+
+const ACTOR_ID = 'admin-1';
+
 describe('ProjectsService', () => {
   let service: ProjectsService;
   let repository: MockRepository;
   let redisService: MockRedisService;
   let notificationsService: MockNotificationsService;
+  let auditService: MockAuditService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -57,6 +67,10 @@ describe('ProjectsService', () => {
           provide: NotificationsService,
           useValue: createMockNotificationsService(),
         },
+        {
+          provide: AuditService,
+          useValue: createMockAuditService(),
+        },
       ],
     }).compile();
 
@@ -64,6 +78,7 @@ describe('ProjectsService', () => {
     repository = module.get(getRepositoryToken(Project));
     redisService = module.get(RedisService);
     notificationsService = module.get(NotificationsService);
+    auditService = module.get(AuditService);
   });
 
   it('should be defined', () => {
@@ -71,7 +86,7 @@ describe('ProjectsService', () => {
   });
 
   describe('create', () => {
-    it('chama o repositório, devolve o projeto criado e invalida o cache', async () => {
+    it('chama o repositório, devolve o projeto criado, invalida o cache e audita', async () => {
       const dto: CreateProjectDto = {
         name: 'Missão Resgate',
         description: 'Resgatar civis em área de risco',
@@ -90,12 +105,20 @@ describe('ProjectsService', () => {
       repository.create!.mockReturnValue(created);
       repository.save!.mockResolvedValue(created);
 
-      const result = await service.create(dto);
+      const result = await service.create(dto, ACTOR_ID);
 
       expect(repository.create).toHaveBeenCalledWith(dto);
       expect(repository.save).toHaveBeenCalledWith(created);
       expect(result).toEqual(created);
       expect(redisService.delByPattern).toHaveBeenCalledWith('projects:*');
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entidade: 'project',
+          entidadeId: 'project-1',
+          acao: 'create',
+          usuarioId: ACTOR_ID,
+        }),
+      );
     });
   });
 
@@ -184,9 +207,11 @@ describe('ProjectsService', () => {
       repository.findOne!.mockResolvedValue(existing);
       repository.save!.mockImplementation((p) => Promise.resolve(p));
 
-      const result = await service.update('project-1', {
-        status: ProjectStatus.IN_PROGRESS,
-      });
+      const result = await service.update(
+        'project-1',
+        { status: ProjectStatus.IN_PROGRESS },
+        ACTOR_ID,
+      );
 
       expect(result.status).toBe(ProjectStatus.IN_PROGRESS);
       expect(result.name).toBe('Missão Resgate');
@@ -202,10 +227,6 @@ describe('ProjectsService', () => {
     });
 
     it('não apaga campos existentes quando o DTO chega com propriedades undefined', async () => {
-      // Com useDefineForClassFields (target ES2022+), o ValidationPipe
-      // instancia UpdateProjectDto com TODOS os campos declarados como
-      // propriedades próprias — os não enviados ficam undefined em vez de
-      // simplesmente ausentes. Um Object.assign ingênuo apagaria o resto.
       const existing = {
         id: 'project-1',
         name: 'Missão Resgate',
@@ -221,12 +242,45 @@ describe('ProjectsService', () => {
       const dto = new UpdateProjectDto();
       dto.status = ProjectStatus.IN_PROGRESS;
 
-      const result = await service.update('project-1', dto);
+      const result = await service.update('project-1', dto, ACTOR_ID);
 
       expect(result.name).toBe('Missão Resgate');
       expect(result.description).toBe('Descrição original');
       expect(result.agilidade).toBe(80);
       expect(result.completion).toBe(0);
+    });
+
+    it('registra o diff de auditoria só com os campos alterados', async () => {
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+        status: ProjectStatus.PENDING,
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
+      repository.save!.mockImplementation((p) => Promise.resolve(p));
+
+      await service.update(
+        'project-1',
+        { status: ProjectStatus.IN_PROGRESS },
+        ACTOR_ID,
+      );
+
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entidade: 'project',
+          entidadeId: 'project-1',
+          acao: 'update',
+          usuarioId: ACTOR_ID,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          alteracoes: expect.objectContaining({
+            status: {
+              de: ProjectStatus.PENDING,
+              para: ProjectStatus.IN_PROGRESS,
+            },
+          }),
+        }),
+      );
     });
 
     it('publica evento na fila quando o status muda', async () => {
@@ -241,7 +295,11 @@ describe('ProjectsService', () => {
       repository.findOne!.mockResolvedValue(existing);
       repository.save!.mockImplementation((p) => Promise.resolve(p));
 
-      await service.update('project-1', { status: ProjectStatus.IN_PROGRESS });
+      await service.update(
+        'project-1',
+        { status: ProjectStatus.IN_PROGRESS },
+        ACTOR_ID,
+      );
 
       expect(notificationsService.notifyStatusChange).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -263,7 +321,7 @@ describe('ProjectsService', () => {
       repository.findOne!.mockResolvedValue(existing);
       repository.save!.mockImplementation((p) => Promise.resolve(p));
 
-      await service.update('project-1', { name: 'Novo nome' });
+      await service.update('project-1', { name: 'Novo nome' }, ACTOR_ID);
 
       expect(notificationsService.notifyStatusChange).not.toHaveBeenCalled();
     });
@@ -281,9 +339,11 @@ describe('ProjectsService', () => {
         new Error('fila indisponível'),
       );
 
-      const result = await service.update('project-1', {
-        status: ProjectStatus.IN_PROGRESS,
-      });
+      const result = await service.update(
+        'project-1',
+        { status: ProjectStatus.IN_PROGRESS },
+        ACTOR_ID,
+      );
 
       expect(result.status).toBe(ProjectStatus.IN_PROGRESS);
     });
@@ -291,19 +351,35 @@ describe('ProjectsService', () => {
 
   describe('remove', () => {
     it('lança NotFoundException quando o id não existe', async () => {
-      repository.delete!.mockResolvedValue({ affected: 0, raw: [] });
+      repository.findOne!.mockResolvedValue(null);
 
-      await expect(service.remove('nao-existe')).rejects.toThrow(
+      await expect(service.remove('nao-existe', ACTOR_ID)).rejects.toThrow(
         NotFoundException,
       );
       expect(redisService.delByPattern).not.toHaveBeenCalled();
     });
 
-    it('remove sem erro quando o id existe e invalida o cache', async () => {
+    it('remove sem erro, invalida o cache e audita', async () => {
+      const existing = {
+        id: 'project-1',
+        name: 'Missão Resgate',
+      } as Project;
+
+      repository.findOne!.mockResolvedValue(existing);
       repository.delete!.mockResolvedValue({ affected: 1, raw: [] });
 
-      await expect(service.remove('project-1')).resolves.toBeUndefined();
+      await expect(
+        service.remove('project-1', ACTOR_ID),
+      ).resolves.toBeUndefined();
       expect(redisService.delByPattern).toHaveBeenCalledWith('projects:*');
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entidade: 'project',
+          entidadeId: 'project-1',
+          acao: 'remove',
+          usuarioId: ACTOR_ID,
+        }),
+      );
     });
   });
 

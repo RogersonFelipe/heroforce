@@ -20,6 +20,10 @@ import { ProjectsService } from './projects.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ProjectStatus } from './entities/project.entity';
+import { GetUser } from '../common/decorators/get-user.decorator';
+import { User, UserRole } from '../users/entities/user.entity';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 
 @ApiTags('projects')
 @Controller('projects')
@@ -29,11 +33,17 @@ export class ProjectsController {
   constructor(private projectsService: ProjectsService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Criar novo projeto' })
   @ApiResponse({ status: 201, description: 'Projeto criado com sucesso' })
   @ApiResponse({ status: 401, description: 'Não autorizado' })
-  async create(@Body() createProjectDto: CreateProjectDto) {
-    return this.projectsService.create(createProjectDto);
+  @ApiResponse({ status: 403, description: 'Restrito a administradores' })
+  async create(
+    @Body() createProjectDto: CreateProjectDto,
+    @GetUser() user: User,
+  ) {
+    return this.projectsService.create(createProjectDto, user.id);
   }
 
   @Get()
@@ -74,22 +84,29 @@ export class ProjectsController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Atualizar projeto' })
   @ApiResponse({ status: 200, description: 'Projeto atualizado com sucesso' })
+  @ApiResponse({ status: 403, description: 'Restrito a administradores' })
   @ApiResponse({ status: 404, description: 'Projeto não encontrado' })
   async update(
     @Param('id') id: string,
     @Body() updateProjectDto: UpdateProjectDto,
+    @GetUser() user: User,
   ) {
-    return this.projectsService.update(id, updateProjectDto);
+    return this.projectsService.update(id, updateProjectDto, user.id);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Remover projeto' })
   @ApiResponse({ status: 200, description: 'Projeto removido com sucesso' })
+  @ApiResponse({ status: 403, description: 'Restrito a administradores' })
   @ApiResponse({ status: 404, description: 'Projeto não encontrado' })
-  async remove(@Param('id') id: string) {
-    await this.projectsService.remove(id);
+  async remove(@Param('id') id: string, @GetUser() user: User) {
+    await this.projectsService.remove(id, user.id);
     return { message: 'Projeto removido com sucesso' };
   }
 }

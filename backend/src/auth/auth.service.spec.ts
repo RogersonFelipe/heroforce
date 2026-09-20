@@ -12,6 +12,7 @@ import { AuthService } from './auth.service';
 import { User } from '../users/entities/user.entity';
 import { CreateUserDto } from './dto/auth.dto';
 import { RedisService } from '../redis/redis.service';
+import { AuditService } from '../audit/audit.service';
 
 jest.mock('bcrypt');
 
@@ -32,10 +33,17 @@ const createMockRedisService = (): MockRedisService => ({
   incrementWithExpiry: jest.fn().mockResolvedValue(1),
 });
 
+type MockAuditService = Partial<Record<keyof AuditService, jest.Mock>>;
+
+const createMockAuditService = (): MockAuditService => ({
+  record: jest.fn().mockResolvedValue(undefined),
+});
+
 describe('AuthService', () => {
   let service: AuthService;
   let repository: MockRepository;
   let redisService: MockRedisService;
+  let auditService: MockAuditService;
   let jwtService: { sign: jest.Mock; decode: jest.Mock };
 
   beforeEach(async () => {
@@ -53,12 +61,14 @@ describe('AuthService', () => {
         },
         { provide: JwtService, useValue: jwtService },
         { provide: RedisService, useValue: createMockRedisService() },
+        { provide: AuditService, useValue: createMockAuditService() },
       ],
     }).compile();
 
     service = module.get<AuthService>(AuthService);
     repository = module.get(getRepositoryToken(User));
     redisService = module.get(RedisService);
+    auditService = module.get(AuditService);
   });
 
   afterEach(() => {
@@ -82,9 +92,10 @@ describe('AuthService', () => {
       repository.findOne!.mockResolvedValue(null);
       (bcrypt.hash as jest.Mock).mockResolvedValue('hash-fake');
       repository.create!.mockImplementation((data: Partial<User>) => data);
-      repository.save!.mockImplementation((user) =>
-        Promise.resolve({ id: 'user-1', ...user }),
-      );
+      repository.save!.mockImplementation((user: Partial<User>) => {
+        user.id = 'user-1';
+        return Promise.resolve(user);
+      });
 
       await service.register(dto);
 
@@ -98,6 +109,14 @@ describe('AuthService', () => {
       >;
       const savedUser = saveMock.mock.calls[0][0];
       expect(savedUser.password).not.toBe(dto.password);
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entidade: 'user',
+          entidadeId: 'user-1',
+          acao: 'create',
+          usuarioId: 'user-1',
+        }),
+      );
     });
 
     it('e-mail duplicado é rejeitado', async () => {

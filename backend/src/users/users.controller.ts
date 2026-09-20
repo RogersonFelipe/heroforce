@@ -8,7 +8,9 @@ import {
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { UsersService } from './users.service';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @ApiTags('users')
 @Controller('users')
@@ -41,11 +43,14 @@ export class UsersController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Remover herói' })
   @ApiResponse({ status: 200, description: 'Herói removido com sucesso' })
+  @ApiResponse({ status: 403, description: 'Restrito a administradores' })
   @ApiResponse({ status: 404, description: 'Herói não encontrado' })
-  async remove(@Param('id') id: string) {
-    await this.usersService.remove(id);
+  async remove(@Param('id') id: string, @GetUser() user: User) {
+    await this.usersService.remove(id, user.id);
     return { message: 'Herói removido com sucesso' };
   }
 }

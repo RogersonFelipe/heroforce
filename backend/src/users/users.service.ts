@@ -2,12 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
+import { AuditService } from '../audit/audit.service';
+import { diffFields } from '../audit/audit-diff.util';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    private auditService: AuditService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -33,11 +36,29 @@ export class UsersService {
     });
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actorId: string): Promise<void> {
+    const existing = await this.findOne(id);
+
     const result = await this.userRepository.delete(id);
 
     if (result.affected === 0) {
       throw new NotFoundException('Usuário não encontrado');
     }
+
+    await this.auditService.record({
+      entidade: 'user',
+      entidadeId: id,
+      acao: 'remove',
+      usuarioId: actorId,
+      alteracoes: diffFields(
+        {
+          name: existing.name,
+          email: existing.email,
+          character: existing.character,
+          role: existing.role,
+        },
+        {},
+      ),
+    });
   }
 }

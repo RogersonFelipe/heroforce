@@ -12,7 +12,6 @@ export class NotificationsProcessor extends WorkerHost {
     const { projectName, previousStatus, newStatus, responsibleEmail } =
       job.data;
 
-    // Simula o envio (e-mail/push). A integração real entraria aqui.
     this.logger.log(
       `Notificando ${responsibleEmail || 'responsável'}: projeto "${projectName}" mudou de "${previousStatus}" para "${newStatus}" ` +
         `(tentativa ${job.attemptsMade + 1}/${job.opts.attempts})`,

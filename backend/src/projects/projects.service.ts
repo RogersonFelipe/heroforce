@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { RedisService } from '../redis/redis.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AuditService } from '../audit/audit.service';
+import { diffFields } from '../audit/audit-diff.util';
 
 const CACHE_PREFIX = 'projects';
 const CACHE_TTL_SECONDS = 60;
@@ -25,12 +27,25 @@ export class ProjectsService {
     private projectRepository: Repository<Project>,
     private redisService: RedisService,
     private notificationsService: NotificationsService,
+    private auditService: AuditService,
   ) {}
 
-  async create(createProjectDto: CreateProjectDto): Promise<Project> {
+  async create(
+    createProjectDto: CreateProjectDto,
+    actorId: string,
+  ): Promise<Project> {
     const project = this.projectRepository.create(createProjectDto);
     const saved = await this.projectRepository.save(project);
     await this.invalidateCache();
+
+    await this.auditService.record({
+      entidade: 'project',
+      entidadeId: saved.id,
+      acao: 'create',
+      usuarioId: actorId,
+      alteracoes: diffFields({}, this.auditableFields(saved)),
+    });
+
     return saved;
   }
 
@@ -83,18 +98,25 @@ export class ProjectsService {
   async update(
     id: string,
     updateProjectDto: UpdateProjectDto,
+    actorId: string,
   ): Promise<Project> {
     const project = await this.findOne(id);
     const previousStatus = project.status;
+    const fieldsBefore = this.auditableFields(project);
 
-    // class-transformer instancia UpdateProjectDto com todos os campos
-    // declarados como propriedades próprias (mesmo os não enviados, como
-    // undefined) — sem filtrar, Object.assign apagaria os campos existentes.
     const updates = this.stripUndefined(updateProjectDto);
     Object.assign(project, updates);
 
     const saved = await this.projectRepository.save(project);
     await this.invalidateCache();
+
+    await this.auditService.record({
+      entidade: 'project',
+      entidadeId: saved.id,
+      acao: 'update',
+      usuarioId: actorId,
+      alteracoes: diffFields(fieldsBefore, this.auditableFields(saved)),
+    });
 
     if (updates.status && updates.status !== previousStatus) {
       await this.publishStatusChange(saved, previousStatus);
@@ -103,7 +125,9 @@ export class ProjectsService {
     return saved;
   }
 
-  async remove(id: string): Promise<void> {
+  async remove(id: string, actorId: string): Promise<void> {
+    const existing = await this.findOne(id);
+
     const result = await this.projectRepository.delete(id);
 
     if (result.affected === 0) {
@@ -111,6 +135,14 @@ export class ProjectsService {
     }
 
     await this.invalidateCache();
+
+    await this.auditService.record({
+      entidade: 'project',
+      entidadeId: id,
+      acao: 'remove',
+      usuarioId: actorId,
+      alteracoes: diffFields(this.auditableFields(existing), {}),
+    });
   }
 
   async getStatistics(): Promise<ProjectStatistics> {
@@ -157,6 +189,22 @@ export class ProjectsService {
     return Object.fromEntries(
       Object.entries(obj).filter(([, value]) => value !== undefined),
     ) as Partial<T>;
+  }
+
+  private auditableFields(project: Project): Record<string, unknown> {
+    return {
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      agilidade: project.agilidade,
+      encantamento: project.encantamento,
+      eficiencia: project.eficiencia,
+      excelencia: project.excelencia,
+      transparencia: project.transparencia,
+      ambicao: project.ambicao,
+      completion: project.completion,
+      responsibleId: project.responsibleId,
+    };
   }
 
   private async publishStatusChange(

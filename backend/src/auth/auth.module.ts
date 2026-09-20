@@ -6,10 +6,12 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { User } from '../users/entities/user.entity';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
+    AuditModule,
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? 'im-batman',

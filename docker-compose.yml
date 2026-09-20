@@ -39,6 +39,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # MongoDB para trilha de auditoria
+  mongo:
+    image: mongo:7
+    container_name: heroforce-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - heroforce-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # Backend NestJS
   backend:
     build:
@@ -52,6 +69,7 @@ services:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/heroforce_db
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      MONGODB_URI: mongodb://mongo:27017/heroforce_audit
       JWT_SECRET: im-batman
       NODE_ENV: development
       PORT: "3000"
@@ -59,6 +77,8 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_started
+      mongo:
         condition: service_started
     volumes:
       - ./backend:/app
@@ -89,6 +109,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  mongo_data:
 
 networks:
   heroforce-network:

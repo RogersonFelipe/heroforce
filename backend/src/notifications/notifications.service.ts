@@ -33,10 +33,6 @@ export class NotificationsService {
     });
   }
 
-  /**
-   * Jobs que esgotaram as tentativas ficam no estado "failed" do BullMQ —
-   * essa é a fila de mensagens mortas, sem precisar de uma fila separada.
-   */
   async listDeadLetter(): Promise<DeadLetterItem[]> {
     const jobs = await this.queue.getJobs(['failed']);
 

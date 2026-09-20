@@ -32,24 +32,30 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-pink-900 flex items-center justify-center p-4">
-      <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 max-w-md w-full border border-white/20 shadow-2xl">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-8 max-w-md w-full border border-slate-200 shadow-sm">
         <div className="text-center mb-8">
-          <Shield className="w-16 h-16 mx-auto mb-4 text-yellow-400" />
-          <h1 className="text-4xl font-bold text-white mb-2">HeroForce</h1>
-          <p className="text-gray-300">Portal de Gestão Heroica</p>
+          <div className="w-12 h-12 mx-auto mb-4 rounded-xl bg-indigo-600 flex items-center justify-center">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-2xl font-semibold text-slate-900 mb-1">
+            HeroForce
+          </h1>
+          <p className="text-slate-500 text-sm">
+            Entre para gerenciar seus projetos
+          </p>
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg flex items-center gap-2 text-red-200">
-            <AlertCircle className="w-5 h-5" />
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span className="text-sm">{error}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Email
             </label>
             <input
@@ -58,14 +64,14 @@ const Login: React.FC = () => {
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
-              placeholder="seu-email@heroforce.com"
-              className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              placeholder="voce@empresa.com"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-200 mb-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Senha
             </label>
             <input
@@ -75,7 +81,7 @@ const Login: React.FC = () => {
                 setFormData({ ...formData, password: e.target.value })
               }
               placeholder="••••••••"
-              className="w-full px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
               required
             />
           </div>
@@ -83,16 +89,16 @@ const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 font-bold py-3 rounded-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white font-medium py-2.5 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? "Entrando..." : "Entrar na Base"}
+            {loading ? "Entrando..." : "Entrar"}
           </button>
 
           <Link
             to="/register"
-            className="block w-full text-center bg-white/10 text-white font-medium py-3 rounded-lg border border-white/30 hover:bg-white/20 transition-all"
+            className="block w-full text-center bg-white text-slate-700 font-medium py-2.5 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors"
           >
-            Registrar Novo Herói
+            Criar conta
           </Link>
         </form>
       </div>

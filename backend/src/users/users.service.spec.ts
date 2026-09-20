@@ -4,6 +4,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
+import { AuditService } from '../audit/audit.service';
 
 type MockRepository = Partial<Record<keyof Repository<User>, jest.Mock>>;
 
@@ -13,9 +14,18 @@ const createMockRepository = (): MockRepository => ({
   delete: jest.fn(),
 });
 
+type MockAuditService = Partial<Record<keyof AuditService, jest.Mock>>;
+
+const createMockAuditService = (): MockAuditService => ({
+  record: jest.fn().mockResolvedValue(undefined),
+});
+
+const ACTOR_ID = 'admin-1';
+
 describe('UsersService', () => {
   let service: UsersService;
   let repository: MockRepository;
+  let auditService: MockAuditService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -25,11 +35,16 @@ describe('UsersService', () => {
           provide: getRepositoryToken(User),
           useValue: createMockRepository(),
         },
+        {
+          provide: AuditService,
+          useValue: createMockAuditService(),
+        },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
     repository = module.get(getRepositoryToken(User));
+    auditService = module.get(AuditService);
   });
 
   it('should be defined', () => {
@@ -95,17 +110,34 @@ describe('UsersService', () => {
 
   describe('remove', () => {
     it('lança NotFoundException quando o id não existe', async () => {
-      repository.delete!.mockResolvedValue({ affected: 0, raw: [] });
+      repository.findOne!.mockResolvedValue(null);
 
-      await expect(service.remove('nao-existe')).rejects.toThrow(
+      await expect(service.remove('nao-existe', ACTOR_ID)).rejects.toThrow(
         NotFoundException,
       );
     });
 
-    it('remove sem erro quando o id existe', async () => {
+    it('remove sem erro quando o id existe e audita', async () => {
+      const existing = {
+        id: 'user-1',
+        name: 'Bruce Wayne',
+        email: 'bruce@dc.com',
+        character: 'Batman',
+        role: 'hero',
+      } as User;
+
+      repository.findOne!.mockResolvedValue(existing);
       repository.delete!.mockResolvedValue({ affected: 1, raw: [] });
 
-      await expect(service.remove('user-1')).resolves.toBeUndefined();
+      await expect(service.remove('user-1', ACTOR_ID)).resolves.toBeUndefined();
+      expect(auditService.record).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entidade: 'user',
+          entidadeId: 'user-1',
+          acao: 'remove',
+          usuarioId: ACTOR_ID,
+        }),
+      );
     });
   });
 });
