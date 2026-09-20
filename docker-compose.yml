@@ -22,6 +22,23 @@ services:
       timeout: 5s
       retries: 10
 
+  # Redis para cache, blacklist de token e rate limit
+  redis:
+    image: redis:7-alpine
+    container_name: heroforce-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - heroforce-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   # Backend NestJS
   backend:
     build:
@@ -32,17 +49,17 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_HOST: postgres
-      DATABASE_PORT: "5432"
-      DATABASE_USER: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_NAME: heroforce_db
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/heroforce_db
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
       JWT_SECRET: im-batman
       NODE_ENV: development
       PORT: "3000"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -60,6 +77,7 @@ services:
       - "5173:5173"
     environment:
       VITE_API_URL: http://localhost:3000
+      PORT: "5173"
     depends_on:
       - backend
     volumes:
@@ -70,6 +88,7 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
 
 networks:
   heroforce-network:
